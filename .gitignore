@@ -1,3 +1,7 @@
-Plots
-Data
 .vscode
+*.png
+*.svg
+*.html
+*.pdf
+*.txt
+Plots/Saved
