@@ -122,7 +122,6 @@ class ODESolutionND:
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection="3d")
-
         if color_variable is not None and len(colors) > 0:
             sm = cm.ScalarMappable(
                 cmap="viridis", norm=plt.Normalize(vmin=colors.min(), vmax=colors.max())
@@ -142,15 +141,11 @@ class ODESolutionND:
             ax.set_xlabel(axis_labels[projection_axes[0]])
             ax.set_ylabel(axis_labels[projection_axes[1]])
             ax.set_zlabel(axis_labels[projection_axes[2]])
-
         if title:
             ax.set_title(title)
-
         plt.tight_layout()
-
         if save_path:
             plt.savefig(save_path, dpi=150, bbox_inches="tight")
-
         plt.show()
         return fig, ax
 
@@ -162,12 +157,12 @@ class ODEViewerND:
     def add_solution(self, solution, label=None):
         self.solutions.append((solution, label))
 
-    def solve_ics_grid(self, system, t_span, ic_grid, t_eval=None, **kwargs):
+    def solve_ics_grid(self, system, t_span, ic_grid, ic_grid_len, t_eval=None, **kwargs):
         for idx, ic in enumerate(ic_grid):
             sol = system.solve(t_span, ic, t_eval=t_eval, **kwargs)
             self.add_solution(sol)
 
-            print(f"Completed trajectory {idx + 1} of {len(ic)}")
+            print(f"Completed trajectory {idx + 1} of {ic_grid_len}")
 
     def plot_all_3d(
         self,
