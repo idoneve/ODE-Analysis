@@ -191,31 +191,9 @@ class ODEViewerND:
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection="3d")
 
-        if color_variable is None:
-            colors = cm.viridis(np.linspace(0, 1, len(self.solutions)))
-
-        colorbar_added = False
-        for i, (sol, label) in enumerate(self.solutions):
-            if color_variable is not None:
-                x, y, z, color_values = sol.project_to_3d(
-                    projection_axes, color_variable, compute_boundary
-                )
-                if not colorbar_added:
-                    sm = cm.ScalarMappable(
-                        cmap="viridis",
-                        norm=plt.Normalize(
-                            vmin=color_values.min(), vmax=color_values.max()
-                        ),
-                    )
-                    sm.set_array([])
-                    plt.colorbar(
-                        sm, ax=ax, label=sol._get_variable_label(color_variable)
-                    )
-                    colorbar_added = True
-                ax.plot(x, y, z, alpha=0.7, linewidth=1, label=label)
-            else:
-                x, y, z, _ = sol.project_to_3d(projection_axes, None, compute_boundary)
-                ax.plot(x, y, z, color=colors[i], alpha=0.7, linewidth=1, label=label)
+        for _, (sol, label) in enumerate(self.solutions):
+            x, y, z, _ = sol.project_to_3d(projection_axes, color_variable, compute_boundary)
+            ax.plot(x, y, z, alpha=0.7, linewidth=1, label=label)
 
         if projection_axes is None:
             ax.set_xlabel("t")
