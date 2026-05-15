@@ -212,10 +212,24 @@ class ODEViewerND:
                         sm, ax=ax, label=sol._get_variable_label(color_variable)
                     )
                     colorbar_added = True
-                ax.plot(x, y, z, alpha=0.7, linewidth=1, label=label)
+                # Plot segments with color mapping
+                cmap = cm.get_cmap("viridis")
+                norm = plt.Normalize(vmin=color_values.min(), vmax=color_values.max())
+                for j in range(len(x) - 1):
+                    color_idx = norm(color_values[j])
+                    ax.plot(
+                        x[j : j + 2],
+                        y[j : j + 2],
+                        z[j : j + 2],
+                        color=cmap(color_idx),
+                        alpha=0.7,
+                        linewidth=1,
+                    )
             else:
                 x, y, z, _ = sol.project_to_3d(projection_axes, None, compute_boundary)
                 ax.plot(x, y, z, color=colors[i], alpha=0.7, linewidth=1, label=label)
+                # Plot initial condition point
+                ax.scatter([x[0]], [y[0]], [z[0]], color=colors[i], s=50, alpha=0.9)
 
         if projection_axes is None:
             ax.set_xlabel("t")
