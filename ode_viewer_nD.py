@@ -191,45 +191,9 @@ class ODEViewerND:
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection="3d")
 
-        if color_variable is None:
-            colors = cm.viridis(np.linspace(0, 1, len(self.solutions)))
-
-        colorbar_added = False
-        for i, (sol, label) in enumerate(self.solutions):
-            if color_variable is not None:
-                x, y, z, color_values = sol.project_to_3d(
-                    projection_axes, color_variable, compute_boundary
-                )
-                if not colorbar_added:
-                    sm = cm.ScalarMappable(
-                        cmap="viridis",
-                        norm=plt.Normalize(
-                            vmin=color_values.min(), vmax=color_values.max()
-                        ),
-                    )
-                    sm.set_array([])
-                    plt.colorbar(
-                        sm, ax=ax, label=sol._get_variable_label(color_variable)
-                    )
-                    colorbar_added = True
-                # Plot segments with color mapping
-                cmap = cm.get_cmap("viridis")
-                norm = plt.Normalize(vmin=color_values.min(), vmax=color_values.max())
-                for j in range(len(x) - 1):
-                    color_idx = norm(color_values[j])
-                    ax.plot(
-                        x[j : j + 2],
-                        y[j : j + 2],
-                        z[j : j + 2],
-                        color=cmap(color_idx),
-                        alpha=0.7,
-                        linewidth=1,
-                    )
-            else:
-                x, y, z, _ = sol.project_to_3d(projection_axes, None, compute_boundary)
-                ax.plot(x, y, z, color=colors[i], alpha=0.7, linewidth=1, label=label)
-                # Plot initial condition point
-                ax.scatter([x[0]], [y[0]], [z[0]], color=colors[i], s=50, alpha=0.9)
+        for _, (sol, label) in enumerate(self.solutions):
+            x, y, z, _ = sol.project_to_3d(projection_axes, color_variable, compute_boundary)
+            ax.plot(x, y, z, alpha=0.7, linewidth=1, label=label)
 
         if projection_axes is None:
             ax.set_xlabel("t")
