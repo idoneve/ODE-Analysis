@@ -53,12 +53,39 @@ class ODESolutionND:
             trajectory.append(point)
         return trajectory
 
+    def _get_variable_label(self, index):
+        if index is None:
+            return None
+        if not isinstance(index, int):
+            raise TypeError("color_variable and projection_axes values must be integers")
+        if index < 0 or index >= self.n_vars + 1:
+            raise ValueError(
+                f"Index {index} is out of bounds. Use 0 for time or 1..{self.n_vars} for variables."
+            )
+        return "time" if index == 0 else self.var_names[index - 1]
+
     def project_to_3d(self, projection_axes=None, color_variable=None):
         if projection_axes is None:
             projection_axes = [0, 1, 2]  # t, x1, x2
 
         if len(projection_axes) != 3:
             raise ValueError("projection_axes must have exactly 3 indices")
+
+        for axis in projection_axes:
+            if not isinstance(axis, int):
+                raise TypeError("projection_axes values must be integers")
+            if axis < 0 or axis >= self.n_vars + 1:
+                raise ValueError(
+                    f"Projection axis {axis} is out of bounds. Use 0 for time or 1..{self.n_vars} for variables."
+                )
+
+        if color_variable is not None:
+            if not isinstance(color_variable, int):
+                raise TypeError("color_variable must be an integer")
+            if color_variable < 0 or color_variable >= self.n_vars + 1:
+                raise ValueError(
+                    f"color_variable {color_variable} is out of bounds. Use 0 for time or 1..{self.n_vars} for variables."
+                )
 
         trajectory = self.get_trajectory()
         x_coords = []
@@ -89,49 +116,28 @@ class ODESolutionND:
         title=None,
         save_path=None,
     ):
-        """
-        Create a 3D plot of the projected solution.
-
-        Args:
-            projection_axes: [ax1, ax2, ax3] indices for (x, y, z) axes
-            color_variable: index to color by (optional)
-            figsize: (width, height) of the figure
-            title: plot title
-            save_path: if provided, saves the figure to this path
-        """
         x, y, z, colors = self.project_to_3d(projection_axes, color_variable)
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection="3d")
-
+        
         if color_variable is not None and len(colors) > 0:
             scatter = ax.scatter(x, y, z, c=colors, cmap="viridis", alpha=0.8, s=20)
-            plt.colorbar(scatter, ax=ax, label=self.var_names[color_variable])
+            color_label = self._get_variable_label(color_variable)
+            plt.colorbar(scatter, ax=ax, label=color_label)
             ax.plot(x, y, z, alpha=0.3, color="gray")
         else:
             ax.plot(x, y, z, "b-", alpha=0.8, linewidth=1.5)
 
-        # Labels
         if projection_axes is None:
             ax.set_xlabel("t")
             ax.set_ylabel(self.var_names[0])
             ax.set_zlabel(self.var_names[1])
         else:
-            ax.set_xlabel(
-                self.var_names[projection_axes[0] - 1]
-                if projection_axes[0] > 0
-                else "t"
-            )
-            ax.set_ylabel(
-                self.var_names[projection_axes[1] - 1]
-                if projection_axes[1] > 0
-                else "t"
-            )
-            ax.set_zlabel(
-                self.var_names[projection_axes[2] - 1]
-                if projection_axes[2] > 0
-                else "t"
-            )
+            axis_labels = ["t"] + self.var_names
+            ax.set_xlabel(axis_labels[projection_axes[0]])
+            ax.set_ylabel(axis_labels[projection_axes[1]])
+            ax.set_zlabel(axis_labels[projection_axes[2]])
 
         if title:
             ax.set_title(title)
@@ -173,28 +179,26 @@ class ODEViewerND:
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection="3d")
+        
         if color_variable is None:
             colors = cm.viridis(np.linspace(0, 1, len(self.solutions)))
 
         for i, (sol, label) in enumerate(self.solutions):
             if color_variable is not None:
-                x, y, z, colors = sol.project_to_3d(projection_axes, color_variable)
+                x, y, z, color_values = sol.project_to_3d(projection_axes, color_variable)
                 sc = ax.scatter(
-                    x, y, z, c=colors, cmap="viridis", alpha=0.7, s=2, label=label
+                    x, y, z, c=color_values, cmap="viridis", alpha=0.7, s=2, label=label
                 )
                 if i == 0:
                     plt.colorbar(
                         sc,
                         ax=ax,
-                        label=(
-                            sol.var_names[color_variable]
-                            if color_variable > 0
-                            else "time"
-                        ),
+                        label=sol._get_variable_label(color_variable),
                     )
             else:
                 x, y, z, _ = sol.project_to_3d(projection_axes, None)
                 ax.plot(x, y, z, color=colors[i], alpha=0.7, linewidth=1, label=label)
+        
         if projection_axes is None:
             ax.set_xlabel("t")
             ax.set_ylabel(sol.var_names[0])
@@ -204,6 +208,7 @@ class ODEViewerND:
             ax.set_xlabel(var_names[projection_axes[0]])
             ax.set_ylabel(var_names[projection_axes[1]])
             ax.set_zlabel(var_names[projection_axes[2]])
+        
         if title:
             ax.set_title(title)
         if label and color_variable is None:
