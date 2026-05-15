@@ -57,7 +57,9 @@ class ODESolutionND:
         if index is None:
             return None
         if not isinstance(index, int):
-            raise TypeError("color_variable and projection_axes values must be integers")
+            raise TypeError(
+                "color_variable and projection_axes values must be integers"
+            )
         if index < 0 or index >= self.n_vars + 1:
             raise ValueError(
                 f"Index {index} is out of bounds. Use 0 for time or 1..{self.n_vars} for variables."
@@ -120,12 +122,14 @@ class ODESolutionND:
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection="3d")
-        
+
         if color_variable is not None and len(colors) > 0:
-            scatter = ax.scatter(x, y, z, c=colors, cmap="viridis", alpha=0.8, s=20)
+            sm = cm.ScalarMappable(
+                cmap="viridis", norm=plt.Normalize(vmin=colors.min(), vmax=colors.max())
+            )
+            sm.set_array([])
             color_label = self._get_variable_label(color_variable)
-            plt.colorbar(scatter, ax=ax, label=color_label)
-            ax.plot(x, y, z, alpha=0.3, color="gray")
+            plt.colorbar(sm, ax=ax, label=color_label)
         else:
             ax.plot(x, y, z, "b-", alpha=0.8, linewidth=1.5)
 
@@ -179,26 +183,32 @@ class ODEViewerND:
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection="3d")
-        
+
         if color_variable is None:
             colors = cm.viridis(np.linspace(0, 1, len(self.solutions)))
 
+        colorbar_added = False
         for i, (sol, label) in enumerate(self.solutions):
             if color_variable is not None:
-                x, y, z, color_values = sol.project_to_3d(projection_axes, color_variable)
-                sc = ax.scatter(
-                    x, y, z, c=color_values, cmap="viridis", alpha=0.7, s=2, label=label
+                x, y, z, color_values = sol.project_to_3d(
+                    projection_axes, color_variable
                 )
-                if i == 0:
-                    plt.colorbar(
-                        sc,
-                        ax=ax,
-                        label=sol._get_variable_label(color_variable),
+                if not colorbar_added:
+                    sm = cm.ScalarMappable(
+                        cmap="viridis",
+                        norm=plt.Normalize(
+                            vmin=color_values.min(), vmax=color_values.max()
+                        ),
                     )
+                    sm.set_array([])
+                    plt.colorbar(
+                        sm, ax=ax, label=sol._get_variable_label(color_variable)
+                    )
+                    colorbar_added = True
             else:
                 x, y, z, _ = sol.project_to_3d(projection_axes, None)
                 ax.plot(x, y, z, color=colors[i], alpha=0.7, linewidth=1, label=label)
-        
+
         if projection_axes is None:
             ax.set_xlabel("t")
             ax.set_ylabel(sol.var_names[0])
@@ -208,7 +218,7 @@ class ODEViewerND:
             ax.set_xlabel(var_names[projection_axes[0]])
             ax.set_ylabel(var_names[projection_axes[1]])
             ax.set_zlabel(var_names[projection_axes[2]])
-        
+
         if title:
             ax.set_title(title)
         if label and color_variable is None:
@@ -218,3 +228,32 @@ class ODEViewerND:
             plt.savefig(save_path, dpi=150, bbox_inches="tight")
         plt.show()
         return fig, ax
+
+    def get_threejs_trajectories(self, projection_axes=None, color_variable=None):
+        trajectories = []
+
+        for idx, (sol, label) in enumerate(self.solutions):
+            x, y, z, color_values = sol.project_to_3d(projection_axes, color_variable)
+            traj = {
+                "points": [
+                    [float(x[i]), float(y[i]), float(z[i])] for i in range(len(x))
+                ],
+                "label": label or f"Trajectory {idx}",
+                "color_values": (
+                    None if color_variable is None else [float(v) for v in color_values]
+                ),
+            }
+
+            if color_variable is not None and len(color_values) > 0:
+                c_min, c_max = color_values.min(), color_values.max()
+                if c_max > c_min:
+                    normalized = (color_values - c_min) / (c_max - c_min)
+                else:
+                    normalized = np.zeros_like(color_values)
+                traj["normalized_colors"] = [float(v) for v in normalized]
+            else:
+                traj["trajectory_color"] = float(idx) / max(1, len(self.solutions) - 1)
+
+            trajectories.append(traj)
+
+        return trajectories
