@@ -27,7 +27,7 @@ T_END = 50.0
 NUM_POINTS = 1000
 
 # System type
-IS_FIRST_ORDER = True  # Set to False for higher-order systems
+IS_FIRST_ORDER = False  # Set to False for higher-order systems
 ODE_ORDER = 3  # Only used if IS_FIRST_ORDER = False
 
 # ============================================================================
