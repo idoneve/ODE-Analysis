@@ -5,3 +5,4 @@
 *.pdf
 *.txt
 Plots/Saved
+__pycache__
