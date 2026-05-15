@@ -44,12 +44,21 @@ class ODESolutionND:
         self.n_vars = len(y)
         self.var_names = var_names
 
-    def get_trajectory(self):
+    def get_trajectory(self, compute_boundary=None):
         n_points = len(self.t)
         trajectory = []
         for i in range(n_points):
             point = [self.t[i]]
             point.extend([self.y[j][i] for j in range(self.n_vars)])
+            
+            # Check if any value exceeds compute_boundary
+            if compute_boundary is not None:
+                if any(abs(val) > compute_boundary for val in point[1:]):  # Skip time (index 0)
+                    # Fill rest with NaN
+                    nan_point = [np.nan] * len(point)
+                    trajectory.append(nan_point)
+                    continue
+            
             trajectory.append(point)
         return trajectory
 
@@ -66,7 +75,7 @@ class ODESolutionND:
             )
         return "time" if index == 0 else self.var_names[index - 1]
 
-    def project_to_3d(self, projection_axes=None, color_variable=None):
+    def project_to_3d(self, projection_axes=None, color_variable=None, compute_boundary=None):
         if projection_axes is None:
             projection_axes = [0, 1, 2]  # t, x1, x2
 
@@ -89,7 +98,7 @@ class ODESolutionND:
                     f"color_variable {color_variable} is out of bounds. Use 0 for time or 1..{self.n_vars} for variables."
                 )
 
-        trajectory = self.get_trajectory()
+        trajectory = self.get_trajectory(compute_boundary=compute_boundary)
         x_coords = []
         y_coords = []
         z_coords = []
@@ -117,8 +126,9 @@ class ODESolutionND:
         figsize=(10, 8),
         title=None,
         save_path=None,
+        compute_boundary=None,
     ):
-        x, y, z, colors = self.project_to_3d(projection_axes, color_variable)
+        x, y, z, colors = self.project_to_3d(projection_axes, color_variable, compute_boundary)
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection="3d")
@@ -157,9 +167,9 @@ class ODEViewerND:
     def add_solution(self, solution, label=None):
         self.solutions.append((solution, label))
 
-    def solve_ics_grid(self, system, t_span, ic_grid, ic_grid_len, t_eval=None, **kwargs):
+    def solve_ics_grid(self, system, t_span, ic_grid, ic_grid_len, **kwargs):
         for idx, ic in enumerate(ic_grid):
-            sol = system.solve(t_span, ic, t_eval=t_eval, **kwargs)
+            sol = system.solve(t_span, ic, **kwargs)
             self.add_solution(sol)
 
             print(f"Completed trajectory {idx + 1} of {ic_grid_len}")
@@ -171,6 +181,8 @@ class ODEViewerND:
         figsize=(12, 8),
         title=None,
         save_path=None,
+        max_boundary=None,
+        compute_boundary=None,
     ):
         if not self.solutions:
             print("No solutions to plot.")
@@ -186,7 +198,7 @@ class ODEViewerND:
         for i, (sol, label) in enumerate(self.solutions):
             if color_variable is not None:
                 x, y, z, color_values = sol.project_to_3d(
-                    projection_axes, color_variable
+                    projection_axes, color_variable, compute_boundary
                 )
                 if not colorbar_added:
                     sm = cm.ScalarMappable(
@@ -200,8 +212,9 @@ class ODEViewerND:
                         sm, ax=ax, label=sol._get_variable_label(color_variable)
                     )
                     colorbar_added = True
+                ax.plot(x, y, z, alpha=0.7, linewidth=1, label=label)
             else:
-                x, y, z, _ = sol.project_to_3d(projection_axes, None)
+                x, y, z, _ = sol.project_to_3d(projection_axes, None, compute_boundary)
                 ax.plot(x, y, z, color=colors[i], alpha=0.7, linewidth=1, label=label)
 
         if projection_axes is None:
@@ -214,6 +227,11 @@ class ODEViewerND:
             ax.set_ylabel(var_names[projection_axes[1]])
             ax.set_zlabel(var_names[projection_axes[2]])
 
+        if max_boundary is not None:
+            ax.set_xlim(-max_boundary, max_boundary)
+            ax.set_ylim(-max_boundary, max_boundary)
+            ax.set_zlim(-max_boundary, max_boundary)
+
         if title:
             ax.set_title(title)
         if label and color_variable is None:
@@ -224,11 +242,11 @@ class ODEViewerND:
         plt.show()
         return fig, ax
 
-    def get_threejs_trajectories(self, projection_axes=None, color_variable=None):
+    def get_threejs_trajectories(self, projection_axes=None, color_variable=None, compute_boundary=None):
         trajectories = []
 
         for idx, (sol, label) in enumerate(self.solutions):
-            x, y, z, color_values = sol.project_to_3d(projection_axes, color_variable)
+            x, y, z, color_values = sol.project_to_3d(projection_axes, color_variable, compute_boundary)
             traj = {
                 "points": [
                     [float(x[i]), float(y[i]), float(z[i])] for i in range(len(x))
