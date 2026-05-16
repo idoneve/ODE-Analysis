@@ -1,6 +1,27 @@
 """
 System function helpers for dynamic variable handling.
 Useful when you want unpacking-like behavior for arbitrary numbers of variables.
+
+USAGE EXAMPLES:
+    
+    # Using StateAccessor with attribute access
+    state = [1.0, 2.0, 3.0]
+    var_names = ['x', 'y', 'z']
+    s = StateAccessor(state, var_names)
+    x = s.x  # Access by attribute
+    y = s['y']  # Or dict-like access
+    
+    # In a system function
+    def system_func(t, state):
+        s = StateAccessor(state, ['x', 'y', 'z'])
+        dx = -s.y - s.z
+        dy = s.x + 0.1 * s.y
+        dz = 0.1 + s.z * (s.x - 5.7)
+        return [dx, dy, dz]
+    
+    # Alternative: Using make_state_dict
+    state_dict = make_state_dict([1, 2, 3], ['x', 'y', 'z'])
+    x = state_dict['x']
 """
 
 
@@ -55,32 +76,4 @@ class StateAccessor:
         return self._dict.copy()
 
 
-# Example usage for documentation
-if __name__ == "__main__":
-    # Example 1: Using dictionary
-    state = [1.0, 2.0, 3.0]
-    var_names = ['x', 'y', 'z']
-    state_dict = make_state_dict(state, var_names)
-    print("Dict approach:", state_dict['x'], state_dict['y'], state_dict['z'])
-    
-    # Example 2: Using StateAccessor
-    accessor = StateAccessor(state, var_names)
-    print("Accessor approach (attribute):", accessor.x, accessor.y, accessor.z)
-    print("Accessor approach (dict):", accessor['x'], accessor['y'], accessor['z'])
-    print("Accessor repr:", accessor)
-    
-    # Example 3: In a system function
-    def example_system_3d(t, state):
-        s = StateAccessor(state, ['x', 'y', 'z'])
-        # Now you can use s.x, s.y, s.z without manual unpacking!
-        dx = -s.y - s.z
-        dy = s.x + 0.1 * s.y
-        dz = 0.1 + s.z * (s.x - 5.7)
-        return [dx, dy, dz]
-    
-    # Example 4: In a higher-order system
-    def example_higher_order(t, state):
-        s = StateAccessor(state, ['x', 'x_dot', 'x_ddot'])
-        # state = [x, dx/dt, d²x/dt²]
-        d3x = s.x * s.x_ddot + t ** 2  # Returns d³x/dt³
-        return d3x
+

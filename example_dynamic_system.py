@@ -2,6 +2,11 @@
 Complete example showing how to use dynamic variable configuration
 for both first-order and higher-order ODE systems.
 
+USAGE:
+    1. Edit N_VARS at the top to test different system sizes
+    2. Run: python3 example_dynamic_system.py
+    3. Change N_VARS to 4 or 5 and see it scale automatically!
+
 Key insight: Just change N_VARS at the top, and everything adapts automatically.
 """
 
@@ -20,6 +25,10 @@ N_VARS = 3  # Change this to 4, 5, etc. - that's it!
 IC_CENTER = 0.0  # Or list: [0.0, 0.5, -0.5]
 IC_SPREAD = 2.0  # Or list: [1.0, 2.0, 0.5]
 ICS_PER_VAR = 2  # Or list: [2, 3, 2]
+
+# Legend 0: time, 1: x, 2: dx/dt, ...
+PROJECTION_AXES = [1, 2, 3] # Axes to be projectd 
+COLOR_VAR = 0 # Variable to base color on (set to None for no colored vars)
 
 # Time integration settings
 T_START = -5.0
@@ -133,13 +142,13 @@ print(f"✓ Solved {len(viewer.solutions)} trajectories")
 # ============================================================================
 
 # For 3+ variable systems, plot first 3 dimensions
-projection_axes = [0, 1, 2]  # time, first var, second var
+ # time, first var, second var
 
 viewer.plot_all_3d(
-    projection_axes=projection_axes,
-    color_variable=None,
+    projection_axes=PROJECTION_AXES,
+    color_variable=COLOR_VAR,
     figsize=(10, 8),
     title=f"{N_VARS}-Variable System",
 )
 
-print(f"✓ Plotted phase space")
+print("✓ Plotted phase space")
