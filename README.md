@@ -181,3 +181,18 @@ The toolkit includes Jupyter notebooks demonstrating various use cases:
 - **ODE_Viewer.ipynb** - Basic ODE visualization
 - **ODE_2System_Viewer.ipynb** - Two-variable systems (with poincare section)
 - **ODE_NSystem_Viewer.ipynb** - General n-dimensional systems
+
+## TODOs
+* add better customizability (show/hide init condition points and poincare intersections)
+* Add option for center to be actual center or only positive (use all axis or just positive nums)
+* Fix plane so it looks normal past boundary
+* Create graph of fixed points (color coded based on stability) on poincare plots
+* Use better fixed point approximations
+* Add animation of moving poincare section
+* Make possible poincare sections not just planes
+    * Cylinder
+    * Sphere (Mercador Projection?)
+    * Multiple planes
+    * Torus
+* 3D Poincare plot
+* Upload to git and create file structure
