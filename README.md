@@ -4,41 +4,34 @@ A powerful toolkit for analyzing N-dimensional ODE systems with **dynamic variab
 
 ## 🚀 Quick Start (5 Minutes)
 
-### TL;DR: The Problem Solved
-
-**Before:** Changing from 3 to 4 variables meant updating IC arrays, adding nested loops, rewriting state unpacking, and 10+ other places.
-
-**After:** Change one number.
-
 ```python
-N_VARS = 3  # ← Just change this
+N_VARS = 3  # Just change this for number of variables
 ```
 
-### Step 1: Copy the imports
+### Step 1: Ensure imports work
 
 ```python
+import sage.all as sage
+import numpy as np
 from ic_generator import generate_ic_grid, get_ic_grid_info
 from state_helpers import StateAccessor
 from ode_viewer_nD import ODESystemND, ODEViewerND
 ```
 
-### Step 2: Set your configuration
+### Step 2: Set up configuration
 
 ```python
-N_VARS = 3  # ← Just change this number!
-IC_CENTER = 0.0
-IC_SPREAD = 2.0
-ICS_PER_VAR = 2
+IC_CENTER = 0.0 # Where the center of IC grid is
+IC_SPREAD = 2.0 # How far the IC grid spreads too
+ICS_PER_VAR = 2 # How many ICs to put on each axis
 ```
 
-### Step 3: Generate ICs automatically
+### Step 3: Generate ICs (automatic)
 
 ```python
 ic_grid = generate_ic_grid(N_VARS, IC_CENTER, IC_SPREAD, ICS_PER_VAR)
 total_ics = get_ic_grid_info(N_VARS, ICS_PER_VAR)
 ```
-
-**Done!** Your IC grid now scales to any N_VARS.
 
 ---
 
@@ -52,21 +45,30 @@ total_ics = get_ic_grid_info(N_VARS, ICS_PER_VAR)
 
 ---
 
-## 💡 Complete Working Example
+## 💡 Examples
 
 ```python
+import sage.all as sage
 import numpy as np
 from ic_generator import generate_ic_grid, get_ic_grid_info
 from state_helpers import StateAccessor
 from ode_viewer_nD import ODESystemND, ODEViewerND
 
 # === CONFIGURATION ===
-N_VARS = 3  # Change this!
+N_VARS = 3 
 IC_CENTER = 0.0
 IC_SPREAD = 2.0
 ICS_PER_VAR = 2
 
-# === SYSTEM ===
+# For a more general initial condition grid
+ic_grid = generate_ic_grid(
+    n_vars=3,
+    ic_center=[0.0, 0.5, -0.5],     # Per-variable centers
+    ic_spread=[1.0, 2.0, 0.5],      # Per-variable spreads
+    ics_per_var=[2, 3, 2]           # Different counts per dimension
+)
+
+# === SYSTEM (circular sin) ===
 VAR_NAMES = [f"x_{i}" for i in range(N_VARS)]
 
 def system_func(t, state):
@@ -88,8 +90,6 @@ viewer = ODEViewerND()
 viewer.solve_ics_grid(system, (-5, 50), ic_grid, total_ics, t_eval=t_eval)
 viewer.plot_all_3d(projection_axes=[0, 1, 2])
 ```
-
-**Try it:** Run `example_dynamic_system.py` and change `N_VARS` to 4 or 5—it just works!
 
 ---
 
@@ -129,61 +129,20 @@ ic_grid = generate_ic_grid(N_VARS, 0, 1, 2)
 system = ODESystemND.from_higher_order(highest_derivative, ODE_ORDER, VAR_NAMES)
 ```
 
-### Pattern 4: Flexible Initial Conditions
-```python
-# Different spreads and counts per variable
-ic_grid = generate_ic_grid(
-    n_vars=3,
-    ic_center=[0.0, 0.5, -0.5],     # Per-variable centers
-    ic_spread=[1.0, 2.0, 0.5],      # Per-variable spreads
-    ics_per_var=[2, 3, 2]           # Different counts per dimension
-)
-```
-
----
-
 ## 📖 How to Use
 
-### For a Quick Start
-1. Run `example_dynamic_system.py`
-2. Edit `N_VARS` to 4 or 5 and re-run
-3. Copy the pattern to your notebooks
-
-### For Your Own Systems
-1. Replace hardcoded IC generation with `generate_ic_grid()`
-2. Define your system function that works for any `N_VARS`
-3. Use `StateAccessor` for readable state access (optional)
+1. Open cooresponding notebook for that system
+2. Set up configurations for ICs and display
+3. Define the system (Can `StateAccessor` for readable state access)
 
 ---
 
 ## ✨ Key Features
 
-- ✅ **Change one number** → everything updates
-- ✅ **No more nested loops** to maintain
-- ✅ **No more broken unpacking** (`x, y, z = ...`)
-- ✅ **Scales to any dimensions** (2D, 3D, 5D, 10D, ...)
-- ✅ **Backwards compatible** with existing code
-- ✅ **Flexible configuration** - scalar or per-variable parameters
-
----
-
-## 🔧 Advanced Usage
-
-### Performance: Check IC Count Before Solving
-```python
-total = get_ic_grid_info(N_VARS, ICS_PER_VAR)
-# 2^5 = 32, 3^5 = 243, 4^5 = 1024 — watch exponential growth!
-if total > 1000:
-    print(f"Warning: {total} ICs may be slow")
-```
-
-### Testing Multiple System Sizes
-```python
-for N_VARS in [2, 3, 4, 5]:
-    ic_grid = generate_ic_grid(N_VARS, 0.0, 2.0, 2)
-    system = ODESystemND(system_func, N_VARS, VAR_NAMES)
-    # ... solve and analyze
-```
+- ✅ **Change parameters easily** → everything updates
+- ✅ **Flexible configuration** -> scalar or per-variable parameters
+- ✅ **StateAccessor** -> for easy access to state variables
+- ✅ **Scales to any dimensions** -> (2D, 3D, 5D, 10D, ...)
 
 ---
 
@@ -206,24 +165,12 @@ ic_grid = generate_ic_grid(
 
 ---
 
-## 📊 Results
-
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Lines of IC setup code | 8-10 | 1 | 89% reduction |
-| Time to change N | 5-10 min | 10 sec | 99% faster |
-| Risk of bugs | High | Low | 10x safer |
-| Typical workflow speedup | - | - | 80% faster |
-
----
-
 ## 📁 What's Included
 
-- `ic_generator.py` - IC grid generation
-- `state_helpers.py` - Convenient state access
-- `ode_viewer_nD.py` - ODE solving and visualization
-- `example_dynamic_system.py` - Complete working example
-- Jupyter notebooks (ODE_Viewer.ipynb, ODE_2System_Viewer.ipynb, ODE_NSystem_Viewer.ipynb)
+- `ic_generator.py` - Auto initial condition grid generation
+- `state_helpers.py` - System function helpers for dynamic variable handling (Useful when you want unpacking-like behavior for arbitrary numbers of variables)
+- `ode_viewer_nD.py` - ODE solving and visualization library
+- Jupyter notebooks: `ODE_Viewer.ipynb`, `ODE_2System_Viewer.ipynb`, `ODE_NSystem_Viewer.ipynb` - For analysis and viewing
 
 ---
 
@@ -232,7 +179,5 @@ ic_grid = generate_ic_grid(
 The toolkit includes Jupyter notebooks demonstrating various use cases:
 
 - **ODE_Viewer.ipynb** - Basic ODE visualization
-- **ODE_2System_Viewer.ipynb** - Two-variable systems
-- **ODE_NSystem_Viewer.ipynb** - N-dimensional systems
-
-Edit `N_VARS` in any notebook to test with different system sizes!
+- **ODE_2System_Viewer.ipynb** - Two-variable systems (with poincare section)
+- **ODE_NSystem_Viewer.ipynb** - General n-dimensional systems
