@@ -246,5 +246,6 @@ class ODEViewerND:
                 traj["trajectory_color"] = float(idx) / max(1, len(self.solutions) - 1)
 
             trajectories.append(traj)
+            print(f"Completed trajectory {idx + 1} of {len(self.solutions)}")
 
         return trajectories
