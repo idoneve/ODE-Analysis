@@ -195,4 +195,4 @@ The toolkit includes Jupyter notebooks demonstrating various use cases:
     * Multiple planes
     * Torus
 * 3D Poincare plot
-* Upload to git and create file structure
+* Make plane sides configurable
