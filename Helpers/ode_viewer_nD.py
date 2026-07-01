@@ -284,12 +284,16 @@ class ODEViewerND:
     def add_solution(self, solution, label=None):
         self.solutions.append((solution, label))
 
-    def solve_ics_grid(self, system, t_span, ic_grid, ic_grid_len, **kwargs):
+    def solve_ics_grid(self, system, t_span, ic_grid, ic_grid_len, show_progress=False, **kwargs):
         for idx, ic in enumerate(ic_grid):
             sol = system.solve(t_span, ic, **kwargs)
             self.add_solution(sol)
 
-            print(f"Completed trajectory {idx + 1} of {ic_grid_len}")
+            if show_progress:
+                percent = int((idx + 1) / ic_grid_len * 100)
+                print(f"Progress: {idx + 1}/{ic_grid_len} trajectories ({percent}%)")
+            else:
+                print(f"Completed trajectory {idx + 1} of {ic_grid_len}")
 
     def plot_all_3d(
         self,

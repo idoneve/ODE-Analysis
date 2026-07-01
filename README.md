@@ -1,234 +1,98 @@
-# ODE Analysis Toolkit
+# ODE Driver and Helper Library
 
-A powerful toolkit for analyzing N-dimensional ODE systems with **dynamic variable configuration**. Change one number and everything adapts automatically—no more manual loop adjustments or broken variable unpacking.
+This repository provides a config-driven ODE workflow with reusable helper code under `Helpers/` and a single unified notebook entrypoint: `driver.ipynb`.
 
-## 🚀 Quick Start (5 Minutes)
+## What this repo does
 
-```python
-N_VARS = 3  # Just change this for number of variables
+- Loads `config.yaml`
+- Builds an ODE system from a user-defined system function
+- Generates an initial condition grid
+- Solves all trajectories with `ODEViewerND`
+- Plots 3D phase-space trajectories
+- Computes and renders Poincaré section crossings
+- Optionally creates an animated Poincaré plane transition
+
+## Requirements
+
+- Python 3.10+
+- `numpy`
+- `matplotlib`
+- `scipy`
+- `PyYAML`
+
+Install dependencies with:
+
+```bash
+pip install numpy matplotlib scipy pyyaml
 ```
 
-### Step 1: Ensure imports work
+## How to use `driver.ipynb`
+
+1. Open `driver.ipynb`
+2. Define your ODE system in the `system_func` cell
+3. Adjust settings in `config.yaml`
+4. Run the notebook cells in order
+
+The driver notebook now mirrors the original `ODE_NSystem_Viewer.ipynb` flow:
+
+1. Load configuration
+2. Define the ODE system
+3. Generate initial conditions
+4. Solve trajectories
+5. Compute Poincaré crossings
+6. Plot phase-space and Poincaré results
+7. Animate the Poincaré plane transition
+
+## Configurable settings
+
+The `config.yaml` file includes:
+
+- `system`: variable count, first-order flag, variable names
+- `integration`: time span, point count, step size, boundary cutoff
+- `ic_grid`: center, spread, and grid density
+- `plot_3d`: projection axes, colormap, title, save path, boundary limits
+- `threejs`: enable interactive Three.js export, output HTML file, background and point size
+- `poincare`: plane coefficients, enable/disable, output paths
+- `animation`: animation enable, start/end planes, fps, duration, save path
+- `integration.show_progress`: enable solver progress printing during trajectory integration
+
+## Driver usage example
+
+In `driver.ipynb`, set up your system like this:
 
 ```python
-import sage.all as sage
-import numpy as np
-from ic_generator import generate_ic_grid, get_ic_grid_info
-from state_helpers import StateAccessor
-from ode_viewer_nD import ODESystemND, ODEViewerND
-```
-
-### Step 2: Set up configuration
-
-```python
-IC_CENTER = 0.0 # Where the center of IC grid is
-IC_SPREAD = 2.0 # How far the IC grid spreads too
-ICS_PER_VAR = 2 # How many ICs to put on each axis
-```
-
-### Step 3: Generate ICs (automatic)
-
-```python
-ic_grid = generate_ic_grid(N_VARS, IC_CENTER, IC_SPREAD, ICS_PER_VAR)
-total_ics = get_ic_grid_info(N_VARS, ICS_PER_VAR)
-```
-
----
-
-## 📚 Core Modules
-
-| Module | Purpose | Usage |
-|--------|---------|-------|
-| **ic_generator.py** | Generates N-dimensional IC grids automatically | `generate_ic_grid(n_vars, ic_center, ic_spread, ics_per_var)` |
-| **state_helpers.py** | Makes accessing state variables easier (optional) | `StateAccessor(state, var_names)` |
-| **ode_viewer_nD.py** | Solve and visualize ODE systems in any dimension | `ODEViewerND().plot_all_3d()` |
-
----
-
-## 💡 Examples
-
-```python
-import sage.all as sage
-import numpy as np
-from ic_generator import generate_ic_grid, get_ic_grid_info
-from state_helpers import StateAccessor
-from ode_viewer_nD import ODESystemND, ODEViewerND
-
-# === CONFIGURATION ===
-N_VARS = 3 
-IC_CENTER = 0.0
-IC_SPREAD = 2.0
-ICS_PER_VAR = 2
-
-# For a more general initial condition grid
-ic_grid = generate_ic_grid(
-    n_vars=3,
-    ic_center=[0.0, 0.5, -0.5],     # Per-variable centers
-    ic_spread=[1.0, 2.0, 0.5],      # Per-variable spreads
-    ics_per_var=[2, 3, 2]           # Different counts per dimension
-)
-
-# === SYSTEM (circular sin) ===
-VAR_NAMES = [f"x_{i}" for i in range(N_VARS)]
+# Example 3-variable first-order system
 
 def system_func(t, state):
-    # Works for any N_VARS
-    derivs = []
-    for i in range(N_VARS):
-        next_idx = (i + 1) % N_VARS
-        derivs.append(np.sin(state[next_idx]))
-    return derivs
-
-# === SOLVE ===
-ic_grid = generate_ic_grid(N_VARS, IC_CENTER, IC_SPREAD, ICS_PER_VAR)
-total_ics = get_ic_grid_info(N_VARS, ICS_PER_VAR)
-
-system = ODESystemND(system_func, N_VARS, VAR_NAMES)
-t_eval = np.linspace(-5, 50, 1000)
-
-viewer = ODEViewerND()
-viewer.solve_ics_grid(system, (-5, 50), ic_grid, total_ics, t_eval=t_eval)
-viewer.plot_all_3d(projection_axes=[0, 1, 2])
-```
-
-Example: Lorenz Attractor
-```
-def system_func(t, state):
-  s = StateAccessor(state, VAR_NAMES)
-  p = 10
-  r = 28
-  b = 8 / 3
-
-  dx = p * (s.x_1 - s.x)
-  dy = s.x * (r - s.x_2) - s.x_1
-  dz = s.x * s.x_1 - b * s.x_2
-
-  return [dx, dy, dz]
-```
-
-Example: Simple two city model
-```
-VAR_NAMES = ['P', 'E', 'M']
-def system_func(t, state):
-    s = StateAccessor(state, VAR_NAMES)
-
-    carrying_cap = 1.0
-    growth_rate = 0.3
-    death_rate = 0.15
-    capture_rate = 0.4
-    war_money = 0.2
-
-    dP = carrying_cap * tanh(growth_rate * s.E - capture_rate * s.M) - death_rate * s.P
-    dE = carrying_cap * tanh(capture_rate * s.P) + war_money * s.M - growth_rate * s.E
-    dM = carrying_cap * tanh(capture_rate * s.P + war_money * (s.M - s.E)) - (carrying_cap / 3) * tanh(s.P) * tanh(s.E)
-
-    return [dP, dE, dM]
-```
-
-## 🎯 Common Patterns
-
-### Pattern 1: Generic System (Any Dimensions)
-```python
-def system_func(t, state):
-    derivs = []
-    for i in range(N_VARS):
-        next_idx = (i + 1) % N_VARS
-        derivs.append(np.sin(state[next_idx]))
-    return derivs
-```
-
-### Pattern 2: Named State Access
-```python
-def system_func(t, state):
-    s = StateAccessor(state, VAR_NAMES)
-    dx = s.x * s.y
-    dy = s.y * s.z
-    dz = s.z * s.x
+    x, y, z = state
+    dx = 0.3 * x - 0.4 * y * z - 0.15 * x
+    dy = 0.3 * y + 0.2 * z - 0.3 * y
+    dz = 1.0 * x - 0.5 * y - 0.2 * z
     return [dx, dy, dz]
 ```
 
-### Pattern 3: Higher-Order ODE (e.g., 4th order)
-```python
-N_VARS = 4  # 4th order
-ODE_ORDER = 4
-VAR_NAMES = ["x"] + [f"x^{(i)}" for i in range(1, ODE_ORDER)]
+Then run the notebook cells. The driver will print progress during integration and save plots to the paths configured in `config.yaml`.
 
-def highest_derivative(t, state):
-    x, x1, x2, x3 = state
-    return x * x2 + t ** 2
+## File layout
 
-ic_grid = generate_ic_grid(N_VARS, 0, 1, 2)
-system = ODESystemND.from_higher_order(highest_derivative, ODE_ORDER, VAR_NAMES)
-```
+- `driver.ipynb` — unified notebook entrypoint
+- `config.yaml` — tuning and plotting settings
+- `Helpers/config_loader.py` — loads YAML config
+- `Helpers/ic_generator.py` — builds adaptive initial condition grids
+- `Helpers/ode_viewer_nD.py` — solver and visualization utilities
+- `Helpers/ode_driver.py` — orchestration functions for the notebook
+- `Helpers/poincare.py` — Poincaré plane utilities and plotting helpers
+- `Helpers/state_helpers.py` — dynamic state accessor for labeled variables
 
-## 📖 How to Use
+## Notes
 
-1. Open cooresponding notebook for that system
-2. Set up configurations for ICs and display
-3. Define the system (Can `StateAccessor` for readable state access)
+- The driver uses a config-first orchestration model.
+- `driver.ipynb` now follows the same order as `ODE_NSystem_Viewer.ipynb`.
+- Poincaré plotting is split into upward and downward crossings.
+- Animation is optional and controlled by `config.yaml`.
 
----
+## Optional improvements
 
-## ✨ Key Features
-
-- ✅ **Change parameters easily** → everything updates
-- ✅ **Flexible configuration** -> scalar or per-variable parameters
-- ✅ **StateAccessor** -> for easy access to state variables
-- ✅ **Scales to any dimensions** -> (2D, 3D, 5D, 10D, ...)
-
----
-
-## 🐛 Troubleshooting
-
-### I changed N_VARS but got errors
-- ✓ Check `VAR_NAMES` has `N_VARS` elements
-- ✓ Test your `system_func` with different `N_VARS` values
-- ✓ Ensure system equations don't have hardcoded indices
-
-### I want different spreads per variable
-```python
-ic_grid = generate_ic_grid(
-    n_vars=N_VARS,
-    ic_center=[0.0, 0.5, -0.5],     # List: per-variable
-    ic_spread=[1.0, 2.0, 0.5],      # List: per-variable
-    ics_per_var=[2, 3, 2]           # List: per-variable
-)
-```
-
----
-
-## 📁 What's Included
-
-- `ic_generator.py` - Auto initial condition grid generation
-- `state_helpers.py` - System function helpers for dynamic variable handling (Useful when you want unpacking-like behavior for arbitrary numbers of variables)
-- `ode_viewer_nD.py` - ODE solving and visualization library
-- Jupyter notebooks: `ODE_Viewer.ipynb`, `ODE_2System_Viewer.ipynb`, `ODE_NSystem_Viewer.ipynb` - For analysis and viewing
-
----
-
-## 🎓 Example Notebooks
-
-The toolkit includes Jupyter notebooks demonstrating various use cases:
-
-- **ODE_Viewer.ipynb** - Basic ODE visualization
-- **ODE_2System_Viewer.ipynb** - Two-variable systems (with poincare section)
-- **ODE_NSystem_Viewer.ipynb** - General n-dimensional systems
-
-## TODOs
-* Refactor notebooks into one single w/ functions in their own library
-* Add better customizability
-    * Show/hide init condition points and poincare intersections
-    * Animation autoscaling
-* Fix first and last frames of animation from being outputted
-* Make plane sides configurable
-* Fix plane so it looks normal past boundary
-
-* Add option for center to be actual center or only positive (use all axis or just positive nums)
-* Create graph of fixed points (color coded based on stability) on poincare plots
-* Use better fixed point approximations
-* Make possible poincare sections not just planes
-    * Cylinder
-    * Sphere (Mercador Projection?)
-    * Multiple planes
-    * Torus
-* 3D Poincare plot
+- Add Three.js interactive viewer support
+- Add better boundary clipping on trajectories
+- Add richer per-trajectory labels and color legends

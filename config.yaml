@@ -3,7 +3,7 @@ system:
   n_vars: 3
   first_order: true
   ode_order: null  # only if first_order is false
-  var_names: ["x", "y", "z"]
+  var_names: ["P", "E", "M"]
 
 # Integration settings
 integration:
@@ -11,6 +11,7 @@ integration:
   t_end: 300.0
   num_points: 3000
   step_size: 1e-12
+  show_progress: true
   compute_boundary: null # set manual boundary size
 
 # Initial conditions
@@ -27,7 +28,14 @@ plot_3d:
   title: "Phase Space"
   colormap: "viridis"
   save_path: "./Plots/3D/3D_NSYS_ODE.png"
+  save_plot: true
   max_boundary: null
+
+threejs:
+  enabled: false
+  save_path: "./Plots/3D/3D_NSYS_ODE.html"
+  background_color: "#ffffff"
+  point_size: 2.0
 
 # 2D phase portrait (from ODE_Viewer.ipynb)
 plot_2d:
@@ -46,7 +54,12 @@ plot_2d:
 # Poincaré section (from ODE_2System_Viewer.ipynb)
 poincare:
   enabled: true
-  plane: [1, 0, 0, -3]  # a*t + b*x + c*y + d = 0
+  plane: [0, 0, 1, -100.0]  # a*t + b*x + c*y + d = 0
+  epsilon: 1e-18
+  show_2d: true
+  show_3d: false
+  up_save_path: "./Plots/2D/poincare_plot_up.svg"
+  down_save_path: "./Plots/2D/poincare_plot_down.svg"
   point_size: 0.6
   flip_x: true
   flip_y: false
