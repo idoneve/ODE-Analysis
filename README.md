@@ -183,6 +183,7 @@ The toolkit includes Jupyter notebooks demonstrating various use cases:
 - **ODE_NSystem_Viewer.ipynb** - General n-dimensional systems
 
 ## TODOs
+* refactor notebooks into one single w/ functions in their own library
 * add better customizability
     * show/hide init condition points and poincare intersections
     * animation autoscaling
