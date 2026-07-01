@@ -1,7 +1,50 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.integrate import solve_ivp
 import matplotlib.cm as cm
+import matplotlib.animation as animation
+from matplotlib.colors import Normalize
+from scipy.integrate import solve_ivp
+
+
+def normalize_plane(plane):
+    a, b, c, d = plane
+    normal = np.array([a, b, c], dtype=float)
+    norm = np.linalg.norm(normal)
+    if norm == 0:
+        raise ValueError("Plane normal cannot be zero")
+    normal /= norm
+    return (normal[0], normal[1], normal[2], d / norm)
+
+
+def plane_basis(plane):
+    a, b, c, d = normalize_plane(plane)
+    normal = np.array([a, b, c], dtype=float)
+    if abs(normal[0]) < 0.9:
+        vref = np.array([1.0, 0.0, 0.0])
+    else:
+        vref = np.array([0.0, 1.0, 0.0])
+
+    u_axis = vref - np.dot(vref, normal) * normal
+    u_axis /= np.linalg.norm(u_axis)
+    v_axis = np.cross(normal, u_axis)
+    v_axis /= np.linalg.norm(v_axis)
+    ref_point = -d * normal
+    return normal, u_axis, v_axis, ref_point
+
+
+def interpolate_plane(start_plane, end_plane, alpha):
+    start_plane = normalize_plane(start_plane)
+    end_plane = normalize_plane(end_plane)
+    n0 = np.array(start_plane[:3], dtype=float)
+    n1 = np.array(end_plane[:3], dtype=float)
+    n = (1.0 - alpha) * n0 + alpha * n1
+    norm = np.linalg.norm(n)
+    if norm < 1e-12:
+        n = n0
+        norm = np.linalg.norm(n)
+    n /= norm
+    d = (1.0 - alpha) * start_plane[3] + alpha * end_plane[3]
+    return (n[0], n[1], n[2], d)
 
 
 class ODESystemND:
@@ -50,15 +93,17 @@ class ODESolutionND:
         for i in range(n_points):
             point = [self.t[i]]
             point.extend([self.y[j][i] for j in range(self.n_vars)])
-            
+
             # Check if any value exceeds compute_boundary
             if compute_boundary is not None:
-                if any(abs(val) > compute_boundary for val in point[1:]):  # Skip time (index 0)
+                if any(
+                    abs(val) > compute_boundary for val in point[1:]
+                ):  # Skip time (index 0)
                     # Fill rest with NaN
                     nan_point = [np.nan] * len(point)
                     trajectory.append(nan_point)
                     continue
-            
+
             trajectory.append(point)
         return trajectory
 
@@ -75,7 +120,9 @@ class ODESolutionND:
             )
         return "time" if index == 0 else self.var_names[index - 1]
 
-    def project_to_3d(self, projection_axes=None, color_variable=None, compute_boundary=None):
+    def project_to_3d(
+        self, projection_axes=None, color_variable=None, compute_boundary=None
+    ):
         if projection_axes is None:
             projection_axes = [0, 1, 2]  # t, x1, x2
 
@@ -119,6 +166,73 @@ class ODESolutionND:
             np.array(colors),
         )
 
+    def poincare_intersections(
+        self,
+        projection_axes=None,
+        plane=None,
+        compute_boundary=None,
+        color_variable=None,
+    ):
+        if projection_axes is None:
+            raise ValueError("projection_axes must be provided")
+        if plane is None:
+            raise ValueError("plane must be provided")
+
+        plane = normalize_plane(plane)
+        normal, u_axis, v_axis, ref_point = plane_basis(plane)
+
+        trajectory = self.get_trajectory(compute_boundary=compute_boundary)
+        intersections = []
+
+        for i in range(len(trajectory) - 1):
+            p1 = trajectory[i]
+            p2 = trajectory[i + 1]
+            try:
+                x1 = np.array(
+                    [float(p1[projection_axes[j]]) for j in range(3)], dtype=float
+                )
+                x2 = np.array(
+                    [float(p2[projection_axes[j]]) for j in range(3)], dtype=float
+                )
+            except Exception:
+                continue
+
+            h1 = np.dot(normal, x1) + plane[3]
+            h2 = np.dot(normal, x2) + plane[3]
+            if h1 * h2 > 0:
+                continue
+
+            denom = h2 - h1
+            if abs(denom) < 1e-16:
+                continue
+
+            alpha = -h1 / denom
+            if alpha < 0.0 or alpha > 1.0:
+                continue
+
+            point3d = x1 + alpha * (x2 - x1)
+            vec_on_plane = point3d - ref_point
+            point2d = np.array(
+                [
+                    np.dot(vec_on_plane, u_axis),
+                    np.dot(vec_on_plane, v_axis),
+                ]
+            )
+
+            color_val = None
+            if color_variable is not None:
+                try:
+                    color_val = float(
+                        p1[color_variable]
+                        + alpha * (p2[color_variable] - p1[color_variable])
+                    )
+                except Exception:
+                    color_val = None
+
+            intersections.append((point3d, point2d, color_val))
+
+        return intersections
+
     def plot_3d(
         self,
         projection_axes=None,
@@ -128,7 +242,9 @@ class ODESolutionND:
         save_path=None,
         compute_boundary=None,
     ):
-        x, y, z, colors = self.project_to_3d(projection_axes, color_variable, compute_boundary)
+        x, y, z, colors = self.project_to_3d(
+            projection_axes, color_variable, compute_boundary
+        )
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection="3d")
@@ -192,7 +308,9 @@ class ODEViewerND:
         ax = fig.add_subplot(111, projection="3d")
 
         for _, (sol, label) in enumerate(self.solutions):
-            x, y, z, _ = sol.project_to_3d(projection_axes, color_variable, compute_boundary)
+            x, y, z, _ = sol.project_to_3d(
+                projection_axes, color_variable, compute_boundary
+            )
             ax.plot(x, y, z, alpha=0.7, linewidth=1, label=label)
 
         if projection_axes is None:
@@ -220,11 +338,134 @@ class ODEViewerND:
         plt.show()
         return fig, ax
 
-    def get_threejs_trajectories(self, projection_axes=None, color_variable=None, compute_boundary=None):
+    def compute_poincare_intersections(
+        self, projection_axes, plane, compute_boundary=None, color_variable=None
+    ):
+        all_intersections = []
+        for traj_idx, (sol, label) in enumerate(self.solutions):
+            intersections = sol.poincare_intersections(
+                projection_axes=projection_axes,
+                plane=plane,
+                compute_boundary=compute_boundary,
+                color_variable=color_variable,
+            )
+            for intersection in intersections:
+                all_intersections.append(
+                    {
+                        "trajectory_index": traj_idx,
+                        "label": label,
+                        "point3d": intersection[0],
+                        "point2d": intersection[1],
+                        "color_value": intersection[2],
+                    }
+                )
+        return all_intersections
+
+    def animate_poincare_section(
+        self,
+        start_plane,
+        end_plane,
+        projection_axes,
+        duration=8.0,
+        fps=15,
+        trail_length=8,
+        compute_boundary=None,
+        color_variable=None,
+        figsize=(7, 7),
+        save_path=None,
+    ):
+
+        n_frames = max(2, int(duration * fps))
+        history = []
+        fig, ax = plt.subplots(figsize=figsize)
+        colormap = plt.colormaps.get_cmap("viridis")
+
+        def draw_frame(frame_index):
+            alpha = frame_index / (n_frames - 1)
+            plane = interpolate_plane(start_plane, end_plane, alpha)
+            intersections = self.compute_poincare_intersections(
+                projection_axes,
+                plane,
+                compute_boundary=compute_boundary,
+                color_variable=color_variable,
+            )
+            history.append((plane, intersections))
+            if len(history) > trail_length:
+                history.pop(0)
+
+            ax.clear()
+            ax.set_title(
+                f"Animated Poincaré Section (frame {frame_index + 1}/{n_frames})\n"
+                f"plane: {plane[0]:.3f}u + {plane[1]:.3f}v + {plane[2]:.3f}w + {plane[3]:.3f} = 0"
+            )
+            ax.set_xlabel("u")
+            ax.set_ylabel("v")
+            ax.grid(True, alpha=0.3)
+
+            for history_index, (_, past_intersections) in enumerate(history):
+                fade = float(history_index + 1) / len(history)
+                marker_size = 20 if history_index == len(history) - 1 else 8
+                al = 0.2 + 0.6 * fade
+
+                coords = np.array([p["point2d"] for p in past_intersections])
+                if coords.size == 0:
+                    continue
+
+                if color_variable is not None:
+                    color_values = [p["color_value"] for p in past_intersections]
+                    if any(cv is not None for cv in color_values):
+                        valid_colors = [cv for cv in color_values if cv is not None]
+                        norm = Normalize(vmin=min(valid_colors), vmax=max(valid_colors))
+                        colors = [
+                            colormap(norm(cv)) if cv is not None else "gray"
+                            for cv in color_values
+                        ]
+                    else:
+                        colors = "gray"
+                else:
+                    colors = "C0"
+
+                ax.scatter(
+                    coords[:, 0],
+                    coords[:, 1],
+                    c=colors,
+                    s=marker_size,
+                    alpha=al,
+                    edgecolors="black",
+                    linewidths=0.2,
+                )
+
+            ax.relim()
+            ax.autoscale_view()
+
+        ani = animation.FuncAnimation(
+            fig,
+            draw_frame,
+            frames=n_frames,
+            interval=1000 / fps,
+            repeat=False,
+        )
+
+        if save_path:
+            try:
+                html = ani.to_jshtml()
+                with open(save_path, "w", encoding="utf-8") as f:
+                    f.write(html)
+                print(f"Saved animated Poincaré section to: {save_path}")
+            except Exception as exc:
+                print(f"Could not save animation HTML: {exc}")
+
+        return ani
+
+    def get_threejs_trajectories(
+        self, projection_axes=None, color_variable=None, compute_boundary=None
+    ):
         trajectories = []
 
         for idx, (sol, label) in enumerate(self.solutions):
-            x, y, z, color_values = sol.project_to_3d(projection_axes, color_variable, compute_boundary)
+            x, y, z, color_values = sol.project_to_3d(
+                projection_axes, color_variable, compute_boundary
+            )
             traj = {
                 "points": [
                     [float(x[i]), float(y[i]), float(z[i])] for i in range(len(x))
