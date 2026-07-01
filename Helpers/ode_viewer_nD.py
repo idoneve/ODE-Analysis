@@ -94,15 +94,10 @@ class ODESolutionND:
             point = [self.t[i]]
             point.extend([self.y[j][i] for j in range(self.n_vars)])
 
-            # Check if any value exceeds compute_boundary
-            if compute_boundary is not None:
-                if any(
-                    abs(val) > compute_boundary for val in point[1:]
-                ):  # Skip time (index 0)
-                    # Fill rest with NaN
-                    nan_point = [np.nan] * len(point)
-                    trajectory.append(nan_point)
-                    continue
+            if compute_boundary is not None and any(
+                abs(val) > compute_boundary for val in point[1:]
+            ):
+                break
 
             trajectory.append(point)
         return trajectory
@@ -249,12 +244,18 @@ class ODESolutionND:
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection="3d")
         if color_variable is not None and len(colors) > 0:
-            sm = cm.ScalarMappable(
-                cmap="viridis", norm=plt.Normalize(vmin=colors.min(), vmax=colors.max())
+            sc = ax.scatter(
+                x,
+                y,
+                z,
+                c=colors,
+                cmap="viridis",
+                marker="o",
+                s=12,
+                alpha=0.8,
             )
-            sm.set_array([])
             color_label = self._get_variable_label(color_variable)
-            plt.colorbar(sm, ax=ax, label=color_label)
+            plt.colorbar(sc, ax=ax, label=color_label)
         else:
             ax.plot(x, y, z, "b-", alpha=0.8, linewidth=1.5)
 
@@ -307,11 +308,25 @@ class ODEViewerND:
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection="3d")
 
-        for _, (sol, label) in enumerate(self.solutions):
-            x, y, z, _ = sol.project_to_3d(
+        for idx, (sol, label) in enumerate(self.solutions):
+            x, y, z, colors = sol.project_to_3d(
                 projection_axes, color_variable, compute_boundary
             )
-            ax.plot(x, y, z, alpha=0.7, linewidth=1, label=label)
+            if color_variable is not None and len(colors) > 0:
+                sc = ax.scatter(
+                    x,
+                    y,
+                    z,
+                    c=colors,
+                    cmap="viridis",
+                    s=12,
+                    alpha=0.8,
+                )
+                if idx == 0:
+                    color_label = sol._get_variable_label(color_variable)
+                    plt.colorbar(sc, ax=ax, label=color_label)
+            else:
+                ax.plot(x, y, z, alpha=0.7, linewidth=1, label=label)
 
         if projection_axes is None:
             ax.set_xlabel("t")
@@ -330,8 +345,8 @@ class ODEViewerND:
 
         if title:
             ax.set_title(title)
-        if label and color_variable is None:
-            ax.legend()
+        if color_variable is None and any(label for _, label in self.solutions):
+            ax.legend(fontsize=8)
         plt.tight_layout()
         if save_path:
             plt.savefig(save_path, dpi=150, bbox_inches="tight")
@@ -360,6 +375,34 @@ class ODEViewerND:
                     }
                 )
         return all_intersections
+
+    def plot_poincare_section(
+        self,
+        projection_axes,
+        plane,
+        compute_boundary=None,
+        color_variable=None,
+        figsize=(6, 6),
+        title=None,
+        save_path=None,
+        show=True,
+    ):
+        intersections = self.compute_poincare_intersections(
+            projection_axes=projection_axes,
+            plane=plane,
+            compute_boundary=compute_boundary,
+            color_variable=color_variable,
+        )
+        from .poincare import plot_poincare_section
+
+        return plot_poincare_section(
+            intersections,
+            plane,
+            figsize=figsize,
+            title=title,
+            save_path=save_path,
+            show=show,
+        )
 
     def animate_poincare_section(
         self,

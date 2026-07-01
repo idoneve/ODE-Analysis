@@ -26,6 +26,7 @@ plot_3d:
   figsize: [6, 6]
   title: "Phase Space"
   colormap: "viridis"
+  save_path: "./Plots/3D/3D_NSYS_ODE.png"
   max_boundary: null
 
 # 2D phase portrait (from ODE_Viewer.ipynb)
