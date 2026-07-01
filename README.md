@@ -183,9 +183,14 @@ The toolkit includes Jupyter notebooks demonstrating various use cases:
 - **ODE_NSystem_Viewer.ipynb** - General n-dimensional systems
 
 ## TODOs
-* add better customizability (show/hide init condition points and poincare intersections, animation autoscaling)
-* Add option for center to be actual center or only positive (use all axis or just positive nums)
+* add better customizability
+    * show/hide init condition points and poincare intersections
+    * animation autoscaling
+* Fix first and last frames of animation from being outputted
+* Make plane sides configurable
 * Fix plane so it looks normal past boundary
+
+* Add option for center to be actual center or only positive (use all axis or just positive nums)
 * Create graph of fixed points (color coded based on stability) on poincare plots
 * Use better fixed point approximations
 * Make possible poincare sections not just planes
@@ -194,5 +199,3 @@ The toolkit includes Jupyter notebooks demonstrating various use cases:
     * Multiple planes
     * Torus
 * 3D Poincare plot
-* Make plane sides configurable
-* Fix first and last frames of animation from being outputted
