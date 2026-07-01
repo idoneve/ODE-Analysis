@@ -435,14 +435,16 @@ class ODEViewerND:
                     linewidths=0.2,
                 )
 
-            ax.relim()
-            ax.autoscale_view()
+            # ax.relim()
+            # ax.autoscale_view()
+
+            print(f"Processed frame {frame_index} of {n_frames}")
 
         ani = animation.FuncAnimation(
             fig,
             draw_frame,
             frames=n_frames,
-            interval=1000 / fps,
+            interval=n_frames / fps,
             repeat=False,
         )
 
