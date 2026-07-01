@@ -91,7 +91,39 @@ viewer.solve_ics_grid(system, (-5, 50), ic_grid, total_ics, t_eval=t_eval)
 viewer.plot_all_3d(projection_axes=[0, 1, 2])
 ```
 
----
+Example: Lorenz Attractor
+```
+def system_func(t, state):
+  s = StateAccessor(state, VAR_NAMES)
+  p = 10
+  r = 28
+  b = 8 / 3
+
+  dx = p * (s.x_1 - s.x)
+  dy = s.x * (r - s.x_2) - s.x_1
+  dz = s.x * s.x_1 - b * s.x_2
+
+  return [dx, dy, dz]
+```
+
+Example: Simple two city model
+```
+VAR_NAMES = ['P', 'E', 'M']
+def system_func(t, state):
+    s = StateAccessor(state, VAR_NAMES)
+
+    carrying_cap = 1.0
+    growth_rate = 0.3
+    death_rate = 0.15
+    capture_rate = 0.4
+    war_money = 0.2
+
+    dP = carrying_cap * tanh(growth_rate * s.E - capture_rate * s.M) - death_rate * s.P
+    dE = carrying_cap * tanh(capture_rate * s.P) + war_money * s.M - growth_rate * s.E
+    dM = carrying_cap * tanh(capture_rate * s.P + war_money * (s.M - s.E)) - (carrying_cap / 3) * tanh(s.P) * tanh(s.E)
+
+    return [dP, dE, dM]
+```
 
 ## 🎯 Common Patterns
 
