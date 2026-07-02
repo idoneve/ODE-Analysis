@@ -92,7 +92,7 @@ viewer.plot_all_3d(projection_axes=[0, 1, 2])
 ```
 
 Example: Lorenz Attractor
-```
+```python
 def system_func(t, state):
   s = StateAccessor(state, VAR_NAMES)
   p = 10
@@ -107,7 +107,7 @@ def system_func(t, state):
 ```
 
 Example: Simple two city model
-```
+```python
 VAR_NAMES = ['P', 'E', 'M']
 def system_func(t, state):
     s = StateAccessor(state, VAR_NAMES)
