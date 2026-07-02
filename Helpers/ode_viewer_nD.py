@@ -232,6 +232,7 @@ class ODESolutionND:
         self,
         projection_axes=None,
         color_variable=None,
+        colormap="viridis",
         figsize=(10, 8),
         title=None,
         save_path=None,
@@ -249,15 +250,25 @@ class ODESolutionND:
                 y,
                 z,
                 c=colors,
-                cmap="viridis",
-                marker="o",
-                s=12,
-                alpha=0.8,
+                cmap=colormap,
+                marker=".",
+                s=3,
+                alpha=0.6,
+                linewidths=0,
             )
             color_label = self._get_variable_label(color_variable)
-            plt.colorbar(sc, ax=ax, label=color_label)
+            cbar = fig.colorbar(
+                sc,
+                ax=ax,
+                label=color_label,
+                fraction=0.05,
+                pad=0.12,
+                orientation="horizontal",
+            )
+            cbar.ax.xaxis.set_label_position("bottom")
+            cbar.ax.xaxis.set_ticks_position("bottom")
         else:
-            ax.plot(x, y, z, "b-", alpha=0.8, linewidth=1.5)
+            ax.plot(x, y, z, "b-", alpha=0.8, linewidth=1.0)
 
         if projection_axes is None:
             ax.set_xlabel("t")
@@ -299,6 +310,7 @@ class ODEViewerND:
         self,
         projection_axes=None,
         color_variable=None,
+        colormap="viridis",
         figsize=(12, 8),
         title=None,
         save_path=None,
@@ -311,6 +323,7 @@ class ODEViewerND:
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection="3d")
+        cbar = None
 
         for idx, (sol, label) in enumerate(self.solutions):
             x, y, z, colors = sol.project_to_3d(
@@ -322,15 +335,26 @@ class ODEViewerND:
                     y,
                     z,
                     c=colors,
-                    cmap="viridis",
-                    s=1,
-                    alpha=0.8,
+                    cmap=colormap,
+                    marker=".",
+                    s=0.25,
+                    alpha=0.6,
+                    linewidths=1,
                 )
-                if idx == 0:
+                if cbar is None:
                     color_label = sol._get_variable_label(color_variable)
-                    plt.colorbar(sc, ax=ax, label=color_label)
+                    cbar = fig.colorbar(
+                        sc,
+                        ax=ax,
+                        label=color_label,
+                        fraction=0.05,
+                        pad=0.12,
+                        orientation="horizontal",
+                    )
+                    cbar.ax.xaxis.set_label_position("bottom")
+                    cbar.ax.xaxis.set_ticks_position("bottom")
             else:
-                ax.plot(x, y, z, alpha=0.7, linewidth=1, label=label)
+                ax.plot(x, y, z, alpha=0.7, linewidth=0.8, label=label)
 
         if projection_axes is None:
             ax.set_xlabel("t")

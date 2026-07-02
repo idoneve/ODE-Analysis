@@ -32,7 +32,7 @@ plot_3d:
   max_boundary: null
 
 threejs:
-  enabled: false
+  enabled: true
   save_path: "./Plots/3D/3D_NSYS_ODE.html"
   background_color: "#ffffff"
   point_size: 2.0
@@ -54,10 +54,10 @@ plot_2d:
 # Poincaré section (from ODE_2System_Viewer.ipynb)
 poincare:
   enabled: true
-  plane: [0, 0, 1, -100.0]  # a*t + b*x + c*y + d = 0
+  plane: [-1.0, 0, 0, 15.0]  # a*t + b*x + c*y + d = 0
   epsilon: 1e-18
   show_2d: true
-  show_3d: false
+  show_3d: true
   up_save_path: "./Plots/2D/poincare_plot_up.svg"
   down_save_path: "./Plots/2D/poincare_plot_down.svg"
   point_size: 0.6

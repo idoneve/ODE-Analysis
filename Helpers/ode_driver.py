@@ -1,3 +1,5 @@
+import json
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -95,6 +97,7 @@ def get_animation_settings(config):
         "save_path": animation.get(
             "poincare_animation_save", "./Plots/2D/poincare_animation.html"
         ),
+        "max_animation_size": float(animation.get("max_animation_size", 64.0)),
     }
 
 
@@ -291,12 +294,114 @@ def plot_phase_space(viewer, config):
     return viewer.plot_all_3d(
         projection_axes=plot_3d["projection_axes"],
         color_variable=plot_3d["color_by"],
+        colormap=plot_3d["colormap"],
         figsize=plot_3d["figsize"],
         title=plot_3d["title"],
         save_path=save_path,
         max_boundary=plot_3d["max_boundary"],
         compute_boundary=get_integration_settings(config)["compute_boundary"],
     )
+
+
+def _build_threejs_html(trajectories, title, background_color, line_width):
+    return f"""<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+<meta charset=\"utf-8\"/>
+<title>{title}</title>
+<script src=\"https://cdnjs.cloudflare.com/ajax/libs/three.js/r150/three.min.js\"></script>
+<script src=\"https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/controls/OrbitControls.js\"></script>
+<style>
+  body {{ margin: 0; overflow: hidden; background: {background_color}; }}
+  #container {{ width: 100vw; height: 100vh; }}
+</style>
+</head>
+<body>
+<div id=\"container\"></div>
+<script>
+const data = {json.dumps(trajectories)};
+const container = document.getElementById('container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('{background_color}');
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({{ antialias: true }});
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight);
+container.appendChild(renderer.domElement);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0, 0);
+controls.update();
+const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+scene.add(ambient);
+const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+directional.position.set(5, 10, 7);
+scene.add(directional);
+const axes = new THREE.AxesHelper(5);
+scene.add(axes);
+function makeColor(traj) {{
+  if (traj.normalized_colors && traj.normalized_colors.length > 0) {{
+    return new THREE.Color().setHSL(traj.normalized_colors[0], 0.7, 0.5);
+  }}
+  return new THREE.Color().setHSL(traj.trajectory_color || 0.5, 0.7, 0.5);
+}}
+function loadTrajectory(traj) {{
+  const points = traj.points.map(p => new THREE.Vector3(p[0], p[1], p[2]));
+  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  const material = new THREE.LineBasicMaterial({{ color: makeColor(traj), linewidth: Math.max(1, {line_width}) }});
+  const line = new THREE.Line(geometry, material);
+  scene.add(line);
+}}
+data.forEach(loadTrajectory);
+function animate() {{
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}}
+window.addEventListener('resize', () => {{
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}});
+camera.position.set(10, 10, 10);
+animate();
+</script>
+</body>
+</html>"""
+
+
+def plot_threejs(viewer, config):
+    threejs = get_threejs_settings(config)
+    if not threejs["enabled"]:
+        print("Three.js export is disabled in config.")
+        return None
+
+    projection_axes = get_plot_3d_settings(config)["projection_axes"]
+    color_variable = get_plot_3d_settings(config)["color_by"]
+    compute_boundary = get_integration_settings(config)["compute_boundary"]
+
+    trajectories = viewer.get_threejs_trajectories(
+        projection_axes=projection_axes,
+        color_variable=color_variable,
+        compute_boundary=compute_boundary,
+    )
+
+    save_path = threejs["save_path"]
+    save_dir = os.path.dirname(save_path)
+    if save_dir:
+        os.makedirs(save_dir, exist_ok=True)
+
+    html = _build_threejs_html(
+        trajectories,
+        "Interactive 3D Trajectories",
+        threejs["background_color"],
+        threejs["point_size"],
+    )
+
+    with open(save_path, "w", encoding="utf-8") as f:
+        f.write(html)
+
+    print(f"Saved Three.js plot to: {save_path}")
+    return save_path
 
 
 def compute_poincare(viewer, config):
@@ -333,6 +438,7 @@ def animate_poincare(viewer, config):
     animation = get_animation_settings(config)
     if not animation["enabled"]:
         return None
+    plt.rcParams["animation.embed_limit"] = animation["max_animation_size"]
     return viewer.animate_poincare_section(
         start_plane=animation["start_plane"],
         end_plane=animation["end_plane"],
