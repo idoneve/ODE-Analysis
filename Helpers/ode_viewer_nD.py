@@ -323,7 +323,7 @@ class ODEViewerND:
                     z,
                     c=colors,
                     cmap="viridis",
-                    s=12,
+                    s=1,
                     alpha=0.8,
                 )
                 if idx == 0:

@@ -1,6 +1,5 @@
-import json
-import os
 import numpy as np
+import matplotlib.pyplot as plt
 
 from .config_loader import load_config
 from .ic_generator import generate_ic_grid

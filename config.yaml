@@ -10,7 +10,7 @@ integration:
   t_start: 0.0
   t_end: 300.0
   num_points: 3000
-  step_size: 1e-12
+  step_size: 0.1
   show_progress: true
   compute_boundary: null # set manual boundary size
 
@@ -69,8 +69,8 @@ animation:
   enabled: true
   start_plane: [1, 0, 0, -0.01]
   end_plane: [1, 0, 0, -299.99]
-  poincare_animation_duration: 15
-  poincare_animation_fps: 24
+  poincare_animation_duration: 10
+  poincare_animation_fps: 12
   poincare_animation_trail: 3
   poincare_animation_save: "./Plots/2D/poincare_animation.html"
   max_animation_size: 64.0
